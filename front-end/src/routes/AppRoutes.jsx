@@ -8,6 +8,7 @@ import DashboardPage from '../pages/DashboardPage';
 import TransactionsPage from '../pages/TransactionsPage';
 import CategoriesPage from '../pages/CategoriesPage';
 import ProfilePage from '../pages/ProfilePage';
+import BudgetManagement from '../pages/BudgetManagement'; 
 import AdminDashboardPage from '../pages/admin/AdminDashboardPage';
 import UserManagementPage from '../pages/admin/UserManagementPage';
 import PageLoader from '../components/PageLoader';
@@ -48,6 +49,9 @@ export default function AppRoutes() {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
           <Route path="/categories" element={<CategoriesPage />} />
+          
+          <Route path="/budgets" element={<BudgetManagement />} /> 
+          
           <Route path="/profile" element={<ProfilePage />} />
         </Route>
       </Route>

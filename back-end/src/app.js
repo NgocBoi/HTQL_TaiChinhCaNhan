@@ -6,6 +6,7 @@ import transactionRoutes from './routes/transactionRoutes.js';
 import dashboardRoutes from './routes/dashboardRoutes.js';
 import statisticsRoutes from './routes/statisticsRoutes.js';
 import adminRoutes from './routes/adminRoutes.js';
+import budgetRoutes from './routes/budgetRoutes.js';
 import { errorHandler, notFound } from './middleware/errorHandler.js';
 
 const app = express();
@@ -28,6 +29,7 @@ app.use('/api/transactions', transactionRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/statistics', statisticsRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/budgets', budgetRoutes);
 
 app.use(notFound);
 app.use(errorHandler);

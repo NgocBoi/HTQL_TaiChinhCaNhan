@@ -44,6 +44,7 @@ transactionSchema.index({ user: 1, date: -1 });
 transactionSchema.index({ user: 1, type: 1 });
 transactionSchema.index({ user: 1, category: 1 });
 
-const Transaction = mongoose.model('Transaction', transactionSchema);
+// Kiểm tra xem model 'Transaction' đã tồn tại trong bộ nhớ chưa, nếu có rồi thì dùng lại, chưa có mới tạo mới
+const Transaction = mongoose.models.Transaction || mongoose.model('Transaction', transactionSchema);
 
 export default Transaction;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { IoAdd, IoPencil, IoSwapHorizontal, IoTrash } from 'react-icons/io5';
+import { IoAdd, IoPencil, IoSwapHorizontal, IoTrash, IoDownloadOutline } from 'react-icons/io5';
 import toast from 'react-hot-toast';
 import * as categoryApi from '../api/categoryApi';
 import * as transactionApi from '../api/transactionApi';
@@ -11,6 +11,7 @@ import Modal from '../components/Modal';
 import PageHeader from '../components/PageHeader';
 import Select from '../components/Select';
 import { TRANSACTION_TYPES } from '../utils/constants';
+import { exportRevenueToExcel } from '../utils/exportExcel';
 import {
   formatCurrency,
   formatDate,
@@ -115,16 +116,34 @@ export default function TransactionsPage() {
     }
   };
 
+  const handleExport = () => {
+    try {
+      exportRevenueToExcel(transactions);
+      toast.success('Xuất file báo cáo doanh thu thành công');
+    } catch (error) {
+      toast.error(error.message || 'Có lỗi xảy ra khi xuất file');
+    }
+  };
+
   return (
     <div>
       <PageHeader
         title="Giao dịch"
         description="Quản lý các khoản thu chi"
         action={
-          <Button onClick={openCreate}>
-            <IoAdd size={20} />
-            Thêm giao dịch
-          </Button>
+          <div className="flex gap-2">
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium text-sm py-2 px-4 rounded-xl shadow-sm transition duration-150"
+            >
+              <IoDownloadOutline size={18} className="text-emerald-500" />
+              Xuất Excel Doanh Thu
+            </button>
+            <Button onClick={openCreate}>
+              <IoAdd size={20} />
+              Thêm giao dịch
+            </Button>
+          </div>
         }
       />
 
@@ -151,7 +170,11 @@ export default function TransactionsPage() {
           icon={IoSwapHorizontal}
           title="Chưa có giao dịch"
           description="Thêm giao dịch đầu tiên để theo dõi tài chính"
-          action={<Button onClick={openCreate}>Thêm giao dịch</Button>}
+          action={
+            <div className="flex gap-2">
+              <Button onClick={openCreate}>Thêm giao dịch</Button>
+            </div>
+          }
         />
       ) : (
         <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">

@@ -6,6 +6,7 @@ import {
   IoPerson,
   IoWallet,
   IoShield,
+  IoPieChart, 
 } from 'react-icons/io5';
 import { useAuth } from '../hooks/useAuth';
 
@@ -13,6 +14,7 @@ const navItems = [
   { to: '/dashboard', label: 'Tổng quan', icon: IoGrid },
   { to: '/transactions', label: 'Giao dịch', icon: IoSwapHorizontal },
   { to: '/categories', label: 'Danh mục', icon: IoPricetags },
+  { to: '/budgets', label: 'Ngân sách', icon: IoPieChart }, 
   { to: '/profile', label: 'Hồ sơ', icon: IoPerson },
 ];
 
