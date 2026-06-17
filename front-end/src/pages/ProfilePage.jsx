@@ -44,42 +44,68 @@ export default function ProfilePage() {
     setModalOpen(true);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setFormError('');
+ const handleSubmit = async (e) => {
+  e.preventDefault();
+  setFormError('');
 
-    if (form.newPassword && form.newPassword !== form.confirmPassword) {
-      setFormError('Mật khẩu xác nhận không khớp');
+  const currentPassword = form.currentPassword.trim();
+  const newPassword = form.newPassword.trim();
+  const confirmPassword = form.confirmPassword.trim();
+
+  const isChangingPassword =
+    currentPassword || newPassword || confirmPassword;
+
+  if (isChangingPassword) {
+    if (!currentPassword) {
+      setFormError('Vui lòng nhập mật khẩu hiện tại');
       return;
     }
 
-    if (form.newPassword && form.newPassword.length < 6) {
+    if (!newPassword) {
+      setFormError('Vui lòng nhập mật khẩu mới');
+      return;
+    }
+
+    if (!confirmPassword) {
+      setFormError('Vui lòng xác nhận mật khẩu mới');
+      return;
+    }
+
+    if (newPassword.length < 6) {
       setFormError('Mật khẩu mới phải có ít nhất 6 ký tự');
       return;
     }
 
-    const payload = {
-      name: form.name.trim(),
-      email: form.email.trim(),
-    };
-
-    if (form.newPassword) {
-      payload.currentPassword = form.currentPassword;
-      payload.newPassword = form.newPassword;
+    if (newPassword !== confirmPassword) {
+      setFormError('Mật khẩu xác nhận không khớp');
+      return;
     }
+  }
 
-    setSubmitting(true);
-
-    try {
-      await updateProfile(payload);
-      toast.success('Cập nhật hồ sơ thành công');
-      setModalOpen(false);
-    } catch (error) {
-      toast.error(getErrorMessage(error));
-    } finally {
-      setSubmitting(false);
-    }
+  const payload = {
+    name: form.name.trim(),
+    email: form.email.trim(),
   };
+
+  if (isChangingPassword) {
+    payload.currentPassword = currentPassword;
+    payload.newPassword = newPassword;
+  }
+
+  setSubmitting(true);
+
+  try {
+    await updateProfile(payload);
+    toast.success('Cập nhật hồ sơ thành công');
+    setModalOpen(false);
+  } catch (error) {
+    const message = getErrorMessage(error);
+    setFormError(message);
+    toast.error(message);
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   if (loading || !user) {
     return <PageLoader label="Đang tải hồ sơ..." />;
