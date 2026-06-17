@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { IoPieChart, IoAlertCircle } from 'react-icons/io5';
+import { IoPieChart, IoAlertCircle, IoSaveOutline } from 'react-icons/io5';
 import toast from 'react-hot-toast';
 import * as categoryApi from '../api/categoryApi';
 import axios from 'axios';
@@ -17,196 +17,207 @@ export default function BudgetManagement() {
 
   const getAuthHeader = () => {
     const token = localStorage.getItem('token') || localStorage.getItem('accessToken') || localStorage.getItem('pfm_token');
-    return {
-      headers: { Authorization: token ? `Bearer ${token}` : '' }
-    };
+    return { headers: { Authorization: token ? `Bearer ${token}` : '' } };
   };
+
+  const fetchBudgets = useCallback(async () => {
+    try {
+      const tokenHeader = getAuthHeader();
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+      const { data } = await axios.get(`${apiUrl}/budgets`, {
+        ...tokenHeader,
+        params: { month, year }
+      });
+      if (data?.success) setBudgets(data.data || []);
+    } catch (error) {
+      toast.error('Không thể tải dữ liệu hạn mức ngân sách');
+    } finally { setLoading(false); }
+  }, [month, year]);
 
   const fetchCategories = useCallback(async () => {
     try {
       const { data } = await categoryApi.getCategories();
       const allCategories = data?.data?.categories || data?.categories || [];
-      
       if (Array.isArray(allCategories)) {
         const expenseCats = allCategories.filter(c => {
-          const typeNormalized = c.type?.toString().toLowerCase().trim();
-          return typeNormalized === 'expense' || typeNormalized === 'chi tiêu';
+          const typeNormalized = c.type?.toString().toLowerCase();
+          return typeNormalized === 'expense' || typeNormalized === 'chi tiêu' || typeNormalized === 'chi';
         });
         setCategories(expenseCats);
       }
     } catch (error) {
-      console.error(error);
+      toast.error('Không thể tải danh mục chi tiêu');
     }
   }, []);
 
-  const fetchBudgets = useCallback(async () => {
-    setLoading(true);
-    try {
-      const res = await axios.get(`http://localhost:5000/api/budgets?month=${month}&year=${year}`, getAuthHeader())
-                         .catch(() => axios.get(`http://localhost:5000/api/budget?month=${month}&year=${year}`, getAuthHeader()));
-      
-      const budgetData = res.data?.data || res.data || [];
-      setBudgets(Array.isArray(budgetData) ? budgetData : []);
-    } catch (error) {
-      setBudgets([]);
-    } finally {
-      setLoading(false);
-    }
-  }, [month, year]);
+  useEffect(() => { fetchCategories(); }, [fetchCategories]);
+  useEffect(() => { setLoading(true); fetchBudgets(); }, [fetchBudgets]);
 
-  useEffect(() => {
-    fetchCategories();
-    fetchBudgets();
-  }, [fetchCategories, fetchBudgets]);
-
-  const handleSaveBudget = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!selectedCategory || !amountLimit) return;
-    setSubmitting(true);
-
-    const payload = {
-      categoryId: selectedCategory,
-      amountLimit: Number(amountLimit),
-      month: Number(month),
-      year: Number(year)
-    };
-
-    try {
-      await axios.post('http://localhost:5000/api/budgets', payload, getAuthHeader())
-        .catch(() => axios.post('http://localhost:5000/api/budget', payload, getAuthHeader()));
-
-      toast.success('Thiết lập hạn mức ngân sách thành công');
-      setAmountLimit('');
-      fetchBudgets();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Không thể lưu hạn mức ngân sách');
-    } finally {
-      setSubmitting(false);
+    if (!amountLimit) {
+      toast.error('Vui lòng nhập số tiền hạn mức!');
+      return;
     }
+
+    setSubmitting(true);
+    try {
+      const tokenHeader = getAuthHeader();
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
+      const payload = {
+        categoryId: selectedCategory || null, // Nếu không chọn gì (để trống) -> gửi null lên để làm hạn mức tổng
+        amountLimit: Number(amountLimit),
+        month: Number(month),
+        year: Number(year)
+      };
+
+      const { data } = await axios.post(`${apiUrl}/budgets`, payload, tokenHeader);
+
+      if (data?.success) {
+        toast.success(selectedCategory ? `Đã cấu hình hạn mức danh mục` : `Đã thiết lập Hạn mức tổng Tháng ${month}/${year}`);
+        setAmountLimit('');
+        setSelectedCategory('');
+        fetchBudgets();
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Có lỗi xảy ra');
+    } finally { setSubmitting(false); }
   };
 
   return (
-    <div className="p-1 sm:p-4 text-slate-100 min-h-screen">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
-          <IoPieChart className="text-emerald-500" size={26} />
-          Quản Lý Ngân Sách Chi Tiêu
-        </h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Thiết lập giới hạn chi tiêu theo từng danh mục để kiểm soát tài chính
-        </p>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 mb-8">
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl flex flex-wrap gap-4 items-center justify-between shadow-sm">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-300">Thời gian theo dõi ngân sách:</span>
-          <div className="flex gap-3">
-            <select 
-              value={month} 
-              onChange={e => setMonth(e.target.value)} 
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer"
-            >
-              {Array.from({ length: 12 }, (_, i) => (
-                <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>
-              ))}
-            </select>
-            <input 
-              type="number" 
-              value={year} 
-              onChange={e => setYear(e.target.value)} 
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm w-24 text-center focus:outline-none focus:ring-2 focus:ring-emerald-500" 
-            />
+    <div className="p-4 max-w-6xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl text-emerald-600 dark:text-emerald-400">
+            <IoPieChart size={26} />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-slate-800 dark:text-white">Quản lý hạn mức chi tiêu</h1>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Thiết lập giới hạn chi tiêu độc lập theo danh mục hoặc tổng thể cả tháng</p>
           </div>
         </div>
 
-        <form onSubmit={handleSaveBudget} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl grid grid-cols-1 md:grid-cols-3 gap-4 items-end shadow-sm">
-          <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Danh mục chi tiêu</label>
-            <select 
-              value={selectedCategory} 
-              onChange={e => setSelectedCategory(e.target.value)} 
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer" 
-              required
+        {/* Bộ chọn Thời gian */}
+        <div className="flex items-center gap-2">
+          <select 
+            value={month} 
+            onChange={(e) => setMonth(Number(e.target.value))}
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl text-sm font-medium focus:outline-none"
+          >
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>
+            ))}
+          </select>
+          <input 
+            type="number" 
+            value={year}
+            onChange={(e) => setYear(Number(e.target.value))}
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl text-sm w-24 text-center font-medium focus:outline-none"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* Form cấu hình */}
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 p-5 rounded-2xl shadow-sm space-y-4">
+          <h2 className="text-base font-bold text-slate-800 dark:text-white">Thiết lập hạn mức Tháng {month}/{year}</h2>
+          
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Loại hạn mức</label>
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm focus:outline-none font-medium"
             >
-              <option value="">-- Chọn danh mục --</option>
-              {categories.map(cat => {
-                const catId = cat.id || cat._id;
-                return (
-                  <option key={catId} value={catId}>{cat.name}</option>
-                );
-              })}
+              {/* Thêm option trống này để làm Hạn mức tổng */}
+              <option value="">-- HẠN MỨC TỔNG (Toàn bộ chi tiêu) --</option>
+              {categories.map(c => (
+                <option key={c.id || c._id} value={c.id || c._id}>Danh mục: {c.name}</option>
+              ))}
             </select>
           </div>
-          
-          <div className="flex flex-col">
-            <label className="text-xs font-medium text-slate-500 dark:text-slate-400 mb-2">Hạn mức giới hạn (VNĐ)</label>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-semibold text-slate-500 dark:text-slate-400">Hạn mức số tiền tối đa (VNĐ)</label>
             <input 
-              type="number" 
-              value={amountLimit} 
-              onChange={e => setAmountLimit(e.target.value)} 
-              placeholder="Ví dụ: 3000000" 
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-400 dark:placeholder-slate-600" 
-              required 
-              min="1" 
+              type="number"
+              placeholder="Ví dụ: 10000000"
+              value={amountLimit}
+              onChange={(e) => setAmountLimit(e.target.value)}
+              className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-2 rounded-xl text-sm focus:outline-none"
+              min="1000"
+              required
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={submitting}
-            className="w-full bg-emerald-600 text-white py-2 px-4 rounded-xl font-medium text-sm hover:bg-emerald-500 shadow-md shadow-emerald-900/10 transition duration-200 h-[38px] disabled:opacity-50"
+            className="w-full flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-400 text-white text-sm font-semibold py-2.5 px-4 rounded-xl shadow-md transition duration-150"
           >
-            {submitting ? 'Đang lưu...' : 'Lưu Ngân Sách'}
+            <IoSaveOutline size={18} />
+            {submitting ? 'Đang lưu...' : 'Lưu cấu hình'}
           </button>
         </form>
-      </div>
 
-      <h2 className="text-lg font-semibold text-slate-800 dark:text-slate-200 mb-4">
-        ⏱️ Tình hình sử dụng ngân sách tháng {month}/{year}
-      </h2>
-
-      {loading ? (
-        <p className="text-center text-slate-400 text-sm py-8">Đang tải dữ liệu hạn mức...</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-          {Array.isArray(budgets) && budgets.map(b => {
-            const percent = b.amountLimit > 0 ? Math.min((b.totalSpent / b.amountLimit) * 100, 100) : 0;
-            const isOver = b.totalSpent > b.amountLimit;
-            const budgetId = b._id || b.id;
+        {/* Khối hiển thị tiến độ */}
+        <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {loading ? (
+            <p className="text-center text-slate-400 py-6 sm:col-span-2">Đang xử lý dữ liệu...</p>
+          ) : budgets.map((b) => {
+            const percent = Math.min(((b.totalSpent || 0) / (b.amountLimit || 1)) * 100, 100);
+            const isOver = (b.totalSpent || 0) >= (b.amountLimit || 0);
+            const isTotalBudget = b.categoryId === null; // Nhận diện card hạn mức tổng
 
             return (
-              <div key={budgetId} className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-5 rounded-2xl shadow-sm">
-                <div className="flex justify-between items-center mb-3">
-                  <span className="font-semibold text-slate-900 dark:text-slate-100 text-base">{b.categoryName || b.Category?.name}</span>
-                  <span className={`text-sm font-semibold ${isOver ? 'text-rose-500' : 'text-emerald-500'}`}>
-                    {(b.totalSpent || 0).toLocaleString()} / {(b.amountLimit || 0).toLocaleString()} đ
+              <div 
+                key={b._id} 
+                className={`border p-5 rounded-2xl shadow-sm space-y-3 transition-all ${
+                  isTotalBudget 
+                    ? 'bg-slate-50/80 dark:bg-slate-950/40 border-slate-300 dark:border-slate-700 sm:col-span-2 ring-1 ring-emerald-500/20' 
+                    : 'bg-white dark:bg-slate-900 border-slate-200/60 dark:border-slate-800'
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <span className={`font-bold text-base ${isTotalBudget ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-800 dark:text-slate-200'}`}>
+                    {b.categoryName}
+                  </span>
+                  <span className={`text-sm font-bold ${isOver ? 'text-rose-500' : 'text-emerald-500'}`}>
+                    {Math.round(percent)}%
                   </span>
                 </div>
 
-                <div className="w-full bg-slate-100 dark:bg-slate-950 rounded-full h-3 overflow-hidden border border-slate-200/50 dark:border-slate-800/50">
+                <div className="w-full bg-slate-200 dark:bg-slate-950 rounded-full h-3.5 overflow-hidden border border-slate-300/30">
                   <div 
                     className={`h-full rounded-full transition-all duration-500 ${isOver ? 'bg-rose-500' : 'bg-emerald-500'}`}
                     style={{ width: `${percent}%` }}
                   ></div>
                 </div>
+
+                <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400 pt-1">
+                  <span>Đã tiêu: <b>{(b.totalSpent || 0).toLocaleString()} đ</b></span>
+                  <span>Hạn mức giới hạn: <b>{(b.amountLimit || 0).toLocaleString()} đ</b></span>
+                </div>
                 
                 {isOver && (
-                  <div className="text-rose-500 dark:text-rose-400 text-xs font-medium mt-3 flex items-center gap-1 animate-pulse">
-                    <IoAlertCircle size={14} />
-                    Danh mục này đã chi vượt hạn mức quy định!
+                  <div className="text-rose-500 dark:text-rose-400 text-xs font-semibold mt-2 flex items-center gap-1 animate-pulse">
+                    <IoAlertCircle size={15} />
+                    Cảnh báo: Đã chi vượt hạn mức quy định!
                   </div>
                 )}
               </div>
             );
           })}
 
-          {budgets.length === 0 && (
-            <p className="text-center text-slate-400 italic bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-8 rounded-2xl text-sm shadow-sm">
-              Chưa có mục chi tiêu nào được thiết lập ngân sách trong tháng này.
-            </p>
+          {!loading && budgets.length === 0 && (
+            <div className="text-center text-slate-400 italic bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800/80 p-8 rounded-2xl shadow-sm sm:col-span-2">
+              Chưa thiết lập bất kỳ mục tiêu tài chính nào cho Tháng {month}/{year}.
+            </div>
           )}
         </div>
-      )}
+      </div>
     </div>
   );
 }

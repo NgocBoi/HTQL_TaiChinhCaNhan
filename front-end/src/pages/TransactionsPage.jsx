@@ -37,21 +37,30 @@ export default function TransactionsPage() {
   const [form, setForm] = useState(emptyForm);
   const [submitting, setSubmitting] = useState(false);
 
+  // Khởi tạo State lưu trữ mốc thời gian xem và xuất báo cáo
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+
   const fetchData = useCallback(async () => {
     try {
-      const params = filterType ? { type: filterType } : {};
+      // Đồng bộ gửi month và year được chọn lên Server API
+      const params = {
+        month: selectedMonth,
+        year: selectedYear,
+        ...(filterType ? { type: filterType } : {})
+      };
       const [txRes, catRes] = await Promise.all([
         transactionApi.getTransactions(params),
         categoryApi.getCategories(),
       ]);
-      setTransactions(txRes.data.data.transactions);
-      setCategories(catRes.data.data.categories);
+      setTransactions(txRes.data?.data?.transactions || txRes.data?.transactions || []);
+      setCategories(catRes.data?.data?.categories || catRes.data?.categories || []);
     } catch (error) {
       toast.error(getErrorMessage(error));
     } finally {
       setLoading(false);
     }
-  }, [filterType]);
+  }, [filterType, selectedMonth, selectedYear]);
 
   useEffect(() => {
     setLoading(true);
@@ -73,7 +82,7 @@ export default function TransactionsPage() {
       type: tx.type,
       note: tx.note || '',
       date: toInputDate(tx.date),
-      category: tx.category?.id || '',
+      category: tx.category?.id || tx.category?._id || '',
     });
     setModalOpen(true);
   };
@@ -89,7 +98,7 @@ export default function TransactionsPage() {
 
     try {
       if (editing) {
-        await transactionApi.updateTransaction(editing.id, payload);
+        await transactionApi.updateTransaction(editing.id || editing._id, payload);
         toast.success('Cập nhật giao dịch thành công');
       } else {
         await transactionApi.createTransaction(payload);
@@ -116,10 +125,11 @@ export default function TransactionsPage() {
     }
   };
 
+  // Kích hoạt xuất dữ liệu có truyền đầy đủ tham số thời gian được chọn
   const handleExport = () => {
     try {
-      exportRevenueToExcel(transactions);
-      toast.success('Xuất file báo cáo doanh thu thành công');
+      exportRevenueToExcel(transactions, selectedMonth, selectedYear);
+      toast.success(`Xuất file báo cáo tài chính tháng ${selectedMonth}/${selectedYear} thành công`);
     } catch (error) {
       toast.error(error.message || 'Có lỗi xảy ra khi xuất file');
     }
@@ -137,7 +147,7 @@ export default function TransactionsPage() {
               className="flex items-center gap-2 bg-white text-slate-700 dark:bg-slate-900 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium text-sm py-2 px-4 rounded-xl shadow-sm transition duration-150"
             >
               <IoDownloadOutline size={18} className="text-emerald-500" />
-              Xuất Excel Doanh Thu
+              Xuất Báo Cáo Tài Chính Tháng
             </button>
             <Button onClick={openCreate}>
               <IoAdd size={20} />
@@ -147,20 +157,42 @@ export default function TransactionsPage() {
         }
       />
 
-      <div className="mb-4 flex gap-2">
-        {['', 'income', 'expense'].map((type) => (
-          <button
-            key={type || 'all'}
-            onClick={() => setFilterType(type)}
-            className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
-              filterType === type
-                ? 'bg-emerald-600 text-white'
-                : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-800'
-            }`}
+      {/* Bộ điều hướng và Select lựa chọn thời gian */}
+      <div className="mb-4 flex flex-wrap gap-4 items-center justify-between bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm">
+        <div className="flex gap-2">
+          {['', 'income', 'expense'].map((type) => (
+            <button
+              key={type || 'all'}
+              onClick={() => setFilterType(type)}
+              className={`rounded-xl px-4 py-2 text-sm font-medium transition ${
+                filterType === type
+                  ? 'bg-emerald-600 text-white'
+                  : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-900 dark:text-slate-300 dark:ring-slate-700 dark:hover:bg-slate-800'
+              }`}
+            >
+              {type === '' ? 'Tất cả' : type === 'income' ? 'Thu nhập' : 'Chi tiêu'}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex gap-2 items-center">
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Xem thời gian:</span>
+          <select
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(Number(e.target.value))}
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs focus:outline-none cursor-pointer font-medium"
           >
-            {type === '' ? 'Tất cả' : type === 'income' ? 'Thu nhập' : 'Chi tiêu'}
-          </button>
-        ))}
+            {Array.from({ length: 12 }, (_, i) => (
+              <option key={i + 1} value={i + 1}>Tháng {i + 1}</option>
+            ))}
+          </select>
+          <input
+            type="number"
+            value={selectedYear}
+            onChange={(e) => setSelectedYear(Number(e.target.value))}
+            className="bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-200 px-3 py-1.5 rounded-xl text-xs w-20 text-center font-medium focus:outline-none"
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -169,7 +201,7 @@ export default function TransactionsPage() {
         <EmptyState
           icon={IoSwapHorizontal}
           title="Chưa có giao dịch"
-          description="Thêm giao dịch đầu tiên để theo dõi tài chính"
+          description="Không tìm thấy lịch sử giao dịch nào trong khoảng thời gian đã chọn"
           action={
             <div className="flex gap-2">
               <Button onClick={openCreate}>Thêm giao dịch</Button>
@@ -192,7 +224,7 @@ export default function TransactionsPage() {
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {transactions.map((tx) => (
-                  <tr key={tx.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
+                  <tr key={tx.id || tx._id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/50">
                     <td className="px-4 py-3 text-slate-700 dark:text-slate-300">
                       {formatDate(tx.date)}
                     </td>
@@ -232,7 +264,7 @@ export default function TransactionsPage() {
                           <IoPencil size={18} />
                         </button>
                         <button
-                          onClick={() => handleDelete(tx.id)}
+                          onClick={() => handleDelete(tx.id || tx._id)}
                           className="rounded-lg p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600"
                         >
                           <IoTrash size={18} />
@@ -283,7 +315,7 @@ export default function TransactionsPage() {
             options={[
               { value: '', label: 'Chọn danh mục' },
               ...filteredCategories.map((c) => ({
-                value: c.id,
+                value: c.id || c._id,
                 label: c.name,
               })),
             ]}

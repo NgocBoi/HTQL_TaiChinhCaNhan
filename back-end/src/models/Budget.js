@@ -10,7 +10,8 @@ const budgetSchema = new mongoose.Schema(
     categoryId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
-      required: true,
+      required: false, 
+      default: null   
     },
     amountLimit: {
       type: Number,
@@ -33,10 +34,8 @@ const budgetSchema = new mongoose.Schema(
   }
 );
 
-// Ràng buộc duy nhất: Một user chỉ có một hạn mức ngân sách cho một danh mục trong một tháng/năm cố định
+// Ràng buộc unique để đảm bảo một tháng chỉ có 1 hạn mức tổng (categoryId: null) và các hạn mức danh mục riêng biệt
 budgetSchema.index({ userId: 1, categoryId: 1, month: 1, year: 1 }, { unique: true });
 
 const Budget = mongoose.model('Budget', budgetSchema);
-
-// BẮT BUỘC PHẢI CÓ DÒNG NÀY ĐỂ FIX LỖI SYNTAXERROR TRÊN
 export default Budget;

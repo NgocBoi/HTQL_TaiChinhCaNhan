@@ -3,11 +3,28 @@ import { sendSuccess } from '../utils/response.js';
 import { asyncHandler } from '../utils/asyncHandler.js';
 
 export const getTransactions = asyncHandler(async (req, res) => {
+  const { type, category, month, year } = req.query;
+  let startDate = req.query.startDate;
+  let endDate = req.query.endDate;
+
+  // Nếu phía Frontend gửi tham số lọc month và year, bóc tách khoảng thời gian cụ thể
+  if (month && year) {
+    const m = Number(month);
+    const y = Number(year);
+    
+    // Ngày bắt đầu đầu tháng (Ví dụ chọn tháng 5: 2026-05-01T00:00:00.000Z)
+    startDate = new Date(y, m - 1, 1).toISOString();
+    
+    // Ngày kết thúc cuối tháng (Ví dụ: 2026-05-31T23:59:59.999Z)
+    endDate = new Date(y, m, 0, 23, 59, 59, 999).toISOString();
+  }
+
+  // Chuyển tiếp các tham số thời gian đã được chuẩn hóa xuống tầng nghiệp vụ Service
   const transactions = await transactionService.getTransactions(req.userId, {
-    type: req.query.type,
-    category: req.query.category,
-    startDate: req.query.startDate,
-    endDate: req.query.endDate,
+    type,
+    category,
+    startDate,
+    endDate,
   });
 
   sendSuccess(res, 200, 'Transactions retrieved successfully', {
