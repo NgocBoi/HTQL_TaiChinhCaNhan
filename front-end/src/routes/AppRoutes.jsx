@@ -17,7 +17,7 @@ import PublicRoute from './PublicRoute';
 import AdminRoute from './AdminRoute';
 import { useAuth } from '../hooks/useAuth';
 import { getHomePath } from '../utils/navigation';
-
+import AdminLoginPage from '../pages/admin/AdminLoginPage';
 function HomeRedirect() {
   const { user, isAuthenticated, loading } = useAuth();
 
@@ -38,11 +38,12 @@ export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<PublicRoute />}>
-        <Route element={<AuthLayout />}>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-        </Route>
-      </Route>
+  <Route element={<AuthLayout />}>
+    <Route path="/login" element={<LoginPage />} />
+    <Route path="/register" element={<RegisterPage />} />
+    <Route path="/admin/login" element={<AdminLoginPage />} />
+  </Route>
+</Route>
 
       <Route element={<ProtectedRoute />}>
         <Route element={<MainLayout />}>

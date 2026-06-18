@@ -23,11 +23,17 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       clearAuthStorage();
       const isAuthPage =
-        window.location.pathname === '/login' ||
-        window.location.pathname === '/register';
-      if (!isAuthPage) {
-        window.location.href = '/login';
-      }
+  window.location.pathname === '/login' ||
+  window.location.pathname === '/register' ||
+  window.location.pathname === '/admin/login';
+
+if (!isAuthPage) {
+  if (window.location.pathname.startsWith('/admin')) {
+    window.location.href = '/admin/login';
+  } else {
+    window.location.href = '/login';
+  }
+}
     }
     return Promise.reject(error);
   }

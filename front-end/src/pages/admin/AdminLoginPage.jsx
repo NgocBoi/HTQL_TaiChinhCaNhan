@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import Button from '../components/Button';
-import Input from '../components/Input';
-import { useAuth } from '../hooks/useAuth';
-import { getErrorMessage } from '../utils/format';
+import Button from '../../components/Button';
+import Input from '../../components/Input';
+import { useAuth } from '../../hooks/useAuth';
+import { getErrorMessage } from '../../utils/format';
 
-export default function LoginPage() {
+export default function AdminLoginPage() {
   const { login, logout } = useAuth();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -23,27 +23,26 @@ export default function LoginPage() {
   try {
     const user = await login(form);
 
-   if (user.role === 'admin') {
-  logout();
-  toast.error('Tài khoản Admin chỉ được đăng nhập tại trang Admin');
-  return;
-}
+    if (user.role !== 'admin') {
+      logout();
+      toast.error('Tài khoản này không có quyền quản trị');
+      return;
+    }
 
     sessionStorage.removeItem('pfm_allow_user_app');
-    toast.success('Đăng nhập thành công!');
-    navigate('/dashboard', { replace: true });
+    toast.success('Đăng nhập Admin thành công!');
+    navigate('/admin/dashboard', { replace: true });
   } catch (error) {
     toast.error(getErrorMessage(error));
   } finally {
     setLoading(false);
   }
 };
-
   return (
     <div className="rounded-2xl bg-white p-8 shadow-2xl shadow-black/20">
-      <h2 className="text-2xl font-bold text-slate-900">Đăng nhập</h2>
+      <h2 className="text-2xl font-bold text-slate-900">Đăng nhập Admin</h2>
       <p className="mt-1 text-sm text-slate-500">
-        Chào mừng trở lại! Vui lòng đăng nhập để tiếp tục.
+        Vui lòng đăng nhập bằng tài khoản quản trị viên.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
@@ -51,11 +50,12 @@ export default function LoginPage() {
           label="Email"
           name="email"
           type="email"
-          placeholder="you@example.com"
+          placeholder="admin@pfm.com"
           value={form.email}
           onChange={handleChange}
           required
         />
+
         <Input
           label="Mật khẩu"
           name="password"
@@ -67,19 +67,9 @@ export default function LoginPage() {
         />
 
         <Button type="submit" className="w-full" loading={loading}>
-          Đăng nhập
+          Đăng nhập Admin
         </Button>
       </form>
-
-      <p className="mt-6 text-center text-sm text-slate-500">
-        Chưa có tài khoản?{' '}
-        <Link
-          to="/register"
-          className="font-medium text-emerald-600 hover:text-emerald-700"
-        >
-          Đăng ký ngay
-        </Link>
-      </p>
     </div>
   );
 }
