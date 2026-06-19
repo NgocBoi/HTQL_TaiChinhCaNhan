@@ -1,0 +1,22 @@
+{
+  "name": "quan_ly_tai_chinh",
+  "version": "1.0.0",
+  "description": "��#\u0000 \u0000H\u0000T\u0000Q\u0000L\u0000_\u0000T\u0000a\u0000i\u0000C\u0000h\u0000i\u0000n\u0000h\u0000C\u0000a\u0000N\u0000h\u0000a\u0000n\u0000\r\u0000 \u0000",
+  "main": "index.js",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NgocBoi/HTQL_TaiChinhCaNhan.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/NgocBoi/HTQL_TaiChinhCaNhan/issues"
+  },
+  "homepage": "https://github.com/NgocBoi/HTQL_TaiChinhCaNhan#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.61.0",
+    "@types/node": "^25.9.3"
+  }
+}
